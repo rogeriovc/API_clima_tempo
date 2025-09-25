@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.12/css/weather-icons.min.css" />
+  <title>App do Tempo</title>
+</head>
+<body>
+  <main class="page">
+    <div class="app-grid">
+
+      <!-- SEARCH CARD -->
+      <section class="card search-card">
+        <h1>App do tempo</h1>
+        <div class="search-box">
+          <input type="text" id="cityInput" placeholder="Digite o nome da cidade..." />
+          <button id="searchBtn" title="Pesquisar">
+            <i class="wi wi-day-sunny"></i> Pesquisar
+          </button>
+        </div>
+        <button id="locationBtn" class="location-btn" title="Usar minha localização">
+          <i class="wi wi-location"></i> Usar minha localização
+        </button>
+        <div class="small-note"></div>
+      </section>
+
+      <!-- WEATHER CARD (current + forecast) -->
+      <section class="card weather-card-wrapper">
+        <div id="loadingSection" class="loading-section" style="display:none;">
+          <div class="loading-spinner"></div>
+          <p>Buscando informações do clima...</p>
+        </div>
+
+        <div id="errorSection" class="error-section" style="display:none;">
+          <div class="error-card">
+            <i class="wi wi-na error-icon"></i>
+            <h3>Erro</h3>
+            <p id="errorMsg">Cidade não encontrada</p>
+          </div>
+        </div>
+
+        <div id="weatherSection" class="weather-section" style="display:none;">
+          <div class="weather-card">
+            <h2 id="cityName">Cidade</h2>
+            <div class="weather-main">
+              <div class="temperature"><span id="temperature">0°C</span></div>
+              <div class="weather-icon"><i id="weatherIcon" class="wi wi-na"></i></div>
+            </div>
+            <p id="description">Descrição</p>
+
+            <div class="weather-details">
+              <div class="detail-item">
+                <i class="wi wi-thermometer"></i>
+                <span>Sensação: <b id="feelsLike">0°C</b></span>
+              </div>
+              <div class="detail-item">
+                <i class="wi wi-humidity"></i>
+                <span>Umidade: <b id="humidity">0%</b></span>
+              </div>
+              <div class="detail-item">
+                <i class="wi wi-strong-wind"></i>
+                <span>Vento: <b id="windSpeed">0 m/s</b></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- FORECAST (5 dias) -->
+          <div id="forecastContainer" class="forecast-container"></div>
+        </div>
+      </section>
+
+      <!-- HISTORY CARD -->
+      <aside class="card history-card">
+        <h3>Pesquisas recentes</h3>
+        <div id="historyList" class="history-list"></div>
+        <div class="history-actions">
+          <button id="clearHistoryBtn" class="btn-clear">Limpar histórico</button>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <script src="scripts.js"></script>
+</body>
+</html>
