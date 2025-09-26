@@ -1,5 +1,5 @@
 // === CONFIG ===
-const API_KEY = 'fc7ad3cafd1e1eecd000227f23e31996'; // sua chave (local dev ok)
+const API_KEY = 'fc7ad3cafd1e1eecd000227f23e31996'; // backup local
 const API_URL_CURRENT = 'https://api.openweathermap.org/data/2.5/weather';
 const API_URL_FORECAST = 'https://api.openweathermap.org/data/2.5/forecast';
 const MAX_HISTORY = 5;
@@ -35,48 +35,64 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // === HELPERS: UI ===
-function hideAllSections(){
+function hideAllSections() {
   weatherSection.style.display = 'none';
   errorSection.style.display = 'none';
   loadingSection.style.display = 'none';
 }
-function showLoading(){ hideAllSections(); loadingSection.style.display = 'flex'; }
-function showError(message){ hideAllSections(); errorMsg.textContent = message; errorSection.style.display = 'block'; }
-function showWeather(){ hideAllSections(); weatherSection.style.display = 'block'; }
+function showLoading() { hideAllSections(); loadingSection.style.display = 'flex'; }
+function showError(message) { hideAllSections(); errorMsg.textContent = message; errorSection.style.display = 'block'; }
+function showWeather() { hideAllSections(); weatherSection.style.display = 'block'; }
+
+// === BACKEND FETCH (com fallback) ===
+async function fetchWithFallback(url, params = {}) {
+  try {
+    // tenta PHP backend
+    const phpRes = await fetch('./api.php?' + new URLSearchParams({ url }));
+    if (phpRes.ok) {
+      return await phpRes.json();
+    } else {
+      throw new Error('Backend não respondeu');
+    }
+  } catch (err) {
+    console.warn('⚠️ Backend falhou, usando chave exposta (somente dev):', err.message);
+    // fallback: chama API direto
+    const directUrl = url.includes('appid=') ? url : url + `&appid=${API_KEY}`;
+    const res = await fetch(directUrl, params);
+    if (!res.ok) throw new Error('Erro direto na API: ' + res.status);
+    return await res.json();
+  }
+}
 
 // === SEARCH FLOW ===
-async function handleSearch(){
+async function handleSearch() {
   const city = cityInput.value.trim();
-  if (!city){ showError('Por favor, digite o nome de uma cidade.'); return; }
+  if (!city) { showError('Por favor, digite o nome de uma cidade.'); return; }
   await searchWeatherByCity(city);
 }
 
-async function searchWeatherByCity(city){
+async function searchWeatherByCity(city) {
   showLoading();
   try {
-    const url = `${API_URL_CURRENT}?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric&lang=pt_br`;
-    const res = await fetch(url);
-    if (!res.ok){
-      if (res.status === 404) throw new Error('Cidade não encontrada');
-      throw new Error('Erro ao buscar dados do clima');
-    }
-    const data = await res.json();
+    const url = `${API_URL_CURRENT}?q=${encodeURIComponent(city)}&units=metric&lang=pt_br`;
+    const data = await fetchWithFallback(url);
+
     displayWeatherData(data);
     saveToHistory(data.name);
     saveLastSearchedCity(data.name);
 
-    // pegar previsão (usa lat/lon)
     const { lat, lon } = data.coord;
-    const forecastData = await fetchForecast(lat, lon);
+    const forecastUrl = `${API_URL_FORECAST}?lat=${lat}&lon=${lon}&units=metric&lang=pt_br`;
+    const forecastData = await fetchWithFallback(forecastUrl);
     displayForecast(forecastData);
-  } catch(err){
+  } catch (err) {
     console.error(err);
     showError(err.message || 'Erro desconhecido');
   }
 }
 
 // === CURRENT WEATHER DISPLAY ===
-function displayWeatherData(data){
+function displayWeatherData(data) {
   cityName.textContent = `${data.name}, ${data.sys.country}`;
   temperature.textContent = `${Math.round(data.main.temp)}°C`;
   description.textContent = data.weather[0].description;
@@ -90,13 +106,8 @@ function displayWeatherData(data){
   showWeather();
 }
 
-// === FORECAST (usa /forecast) ===
-async function fetchForecast(lat, lon){
-  const url = `${API_URL_FORECAST}?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=pt_br`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Erro ao buscar previsão');
-  const data = await res.json();
-  // agrupa por dia
+// === FORECAST ===
+function processForecastData(data) {
   const days = {};
   data.list.forEach(item => {
     const date = new Date(item.dt * 1000);
@@ -104,13 +115,12 @@ async function fetchForecast(lat, lon){
     if (!days[day]) days[day] = [];
     days[day].push(item);
   });
-  // pega próximas 5 datas (exclui hoje)
+
   const today = new Date().toISOString().split('T')[0];
   const dayKeys = Object.keys(days).filter(k => k > today).slice(0, 5);
-  // construir array com resumo
-  const forecast = dayKeys.map(key => {
+
+  return dayKeys.map(key => {
     const items = days[key];
-    // item mais próximo de 12:00
     let target = items.reduce((acc, cur) => {
       const diffCur = Math.abs(new Date(cur.dt * 1000).getHours() - 12);
       const diffAcc = Math.abs(new Date(acc.dt * 1000).getHours() - 12);
@@ -127,17 +137,17 @@ async function fetchForecast(lat, lon){
       tempMax
     };
   });
-  return forecast;
 }
 
-function displayForecast(forecast){
+function displayForecast(raw) {
+  const forecast = processForecastData(raw);
   forecastContainer.innerHTML = '';
   if (!forecast || forecast.length === 0) return;
   forecast.forEach(f => {
     const card = document.createElement('div');
     card.className = 'forecast-card';
     const dateObj = new Date(f.date);
-    const dateLabel = dateObj.toLocaleDateString('pt-BR', {weekday:'short', day:'numeric', month:'short'});
+    const dateLabel = dateObj.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' });
     card.innerHTML = `
       <div class="date">${dateLabel}</div>
       <div class="icon"><i class="wi ${mapIcon(f.icon)}" style="font-size:1.4rem"></i></div>
@@ -150,35 +160,33 @@ function displayForecast(forecast){
 }
 
 // === ICON MAPPING ===
-function mapIcon(iconCode){
+function mapIcon(iconCode) {
   const map = {
-    '01d':'wi-day-sunny','01n':'wi-night-clear','02d':'wi-day-cloudy','02n':'wi-night-alt-cloudy',
-    '03d':'wi-cloud','03n':'wi-cloud','04d':'wi-cloudy','04n':'wi-cloudy',
-    '09d':'wi-showers','09n':'wi-showers','10d':'wi-day-rain','10n':'wi-night-rain',
-    '11d':'wi-thunderstorm','11n':'wi-thunderstorm','13d':'wi-snow','13n':'wi-snow',
-    '50d':'wi-fog','50n':'wi-fog'
+    '01d': 'wi-day-sunny', '01n': 'wi-night-clear', '02d': 'wi-day-cloudy', '02n': 'wi-night-alt-cloudy',
+    '03d': 'wi-cloud', '03n': 'wi-cloud', '04d': 'wi-cloudy', '04n': 'wi-cloudy',
+    '09d': 'wi-showers', '09n': 'wi-showers', '10d': 'wi-day-rain', '10n': 'wi-night-rain',
+    '11d': 'wi-thunderstorm', '11n': 'wi-thunderstorm', '13d': 'wi-snow', '13n': 'wi-snow',
+    '50d': 'wi-fog', '50n': 'wi-fog'
   };
   return map[iconCode] || 'wi-na';
 }
-function updateWeatherIcon(iconCode){
-  weatherIcon.className = `wi ${mapIcon(iconCode)}`;
-}
+function updateWeatherIcon(iconCode) { weatherIcon.className = `wi ${mapIcon(iconCode)}`; }
 
-// === BACKGROUND THEME (simples) ===
-function updateBackgroundTheme(condition){
+// === BACKGROUND THEME ===
+function updateBackgroundTheme(condition) {
   document.body.className = '';
-  switch(condition){
+  switch (condition) {
     case 'clear': document.body.classList.add('sunny'); break;
     case 'rain': case 'drizzle': document.body.classList.add('rainy'); break;
     case 'clouds': document.body.classList.add('cloudy'); break;
     case 'snow': document.body.classList.add('snowy'); break;
-    default: /* mantém */ break;
+    default: break;
   }
 }
 
 // === GEOLOCATION ===
-function getCurrentLocation(){
-  if (!navigator.geolocation){ showError('Geolocalização não suportada'); return; }
+function getCurrentLocation() {
+  if (!navigator.geolocation) { showError('Geolocalização não suportada'); return; }
   showLoading();
   navigator.geolocation.getCurrentPosition(pos => {
     const { latitude, longitude } = pos.coords;
@@ -189,29 +197,28 @@ function getCurrentLocation(){
   });
 }
 
-async function searchWeatherByCoords(lat, lon){
+async function searchWeatherByCoords(lat, lon) {
   showLoading();
   try {
-    const url = `${API_URL_CURRENT}?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=pt_br`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Erro ao buscar clima por coordenadas');
-    const data = await res.json();
+    const url = `${API_URL_CURRENT}?lat=${lat}&lon=${lon}&units=metric&lang=pt_br`;
+    const data = await fetchWithFallback(url);
+
     displayWeatherData(data);
     saveToHistory(data.name);
     saveLastSearchedCity(data.name);
 
-    // forecast
-    const forecastData = await fetchForecast(lat, lon);
+    const forecastUrl = `${API_URL_FORECAST}?lat=${lat}&lon=${lon}&units=metric&lang=pt_br`;
+    const forecastData = await fetchWithFallback(forecastUrl);
     displayForecast(forecastData);
-  } catch(err){
+  } catch (err) {
     console.error(err); showError(err.message || 'Erro');
   }
 }
 
 // === HISTORY ===
-function getSearchHistory(){ return JSON.parse(localStorage.getItem('weatherHistory') || '[]'); }
+function getSearchHistory() { return JSON.parse(localStorage.getItem('weatherHistory') || '[]'); }
 
-function saveToHistory(city){
+function saveToHistory(city) {
   let history = getSearchHistory();
   history = history.filter(item => item.toLowerCase() !== city.toLowerCase());
   history.unshift(city);
@@ -220,21 +227,21 @@ function saveToHistory(city){
   displaySearchHistory();
 }
 
-function removeFromHistory(city){
+function removeFromHistory(city) {
   let history = getSearchHistory().filter(h => h.toLowerCase() !== city.toLowerCase());
   localStorage.setItem('weatherHistory', JSON.stringify(history));
   displaySearchHistory();
 }
 
-function clearHistory(){
+function clearHistory() {
   localStorage.removeItem('weatherHistory');
   displaySearchHistory();
 }
 
-function displaySearchHistory(){
+function displaySearchHistory() {
   const history = getSearchHistory();
   historyList.innerHTML = '';
-  if (history.length === 0){
+  if (history.length === 0) {
     historyList.innerHTML = '<div style="opacity:.7">Nenhuma pesquisa recente</div>';
     return;
   }
@@ -256,10 +263,10 @@ function displaySearchHistory(){
     historyList.appendChild(row);
   });
 }
-function loadSearchHistory(){ displaySearchHistory(); }
+function loadSearchHistory() { displaySearchHistory(); }
 
-function saveLastSearchedCity(city){ localStorage.setItem('lastSearchedCity', city); }
-function loadLastSearchedCity(){
+function saveLastSearchedCity(city) { localStorage.setItem('lastSearchedCity', city); }
+function loadLastSearchedCity() {
   const last = localStorage.getItem('lastSearchedCity');
   if (last) cityInput.value = last;
 }
