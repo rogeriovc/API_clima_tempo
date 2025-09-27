@@ -80,8 +80,7 @@ async function makeSecureApiCall(action, params = {}) {
     console.log(' Status da resposta:', response.status);
     console.log(' Response OK:', response.ok);
 
-    // CORREÇÃO: Não verificar apenas response.ok
-    // Vamos ler a resposta primeiro
+   
     const responseText = await response.text();
     console.log(' Resposta bruta:', responseText.substring(0, 200) + '...');
 
@@ -251,7 +250,7 @@ function displayWeatherData(data) {
 
 // === FORECAST ===
 function processForecastData(data) {
-  console.log(' Processando dados de previsão...');
+  console.log('   Processando dados de previsão...');
   
   const days = {};
   data.list.forEach(item => {
