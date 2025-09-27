@@ -1,5 +1,37 @@
 <?php
 
+// Carrega variáveis de ambiente
+function loadEnv($path) {
+    if (!file_exists($path)) {
+        throw new Exception('.env file not found');
+    }
+    
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue; // Skip comments
+        
+        list($name, $value) = explode('=', $line, 2);
+        $name = trim($name);
+        $value = trim($value);
+        
+        if (!array_key_exists($name, $_SERVER) && !array_key_exists($name, $_ENV)) {
+            putenv(sprintf('%s=%s', $name, $value));
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
+        }
+    }
+}
+
+// Carrega .env
+try {
+    loadEnv(__DIR__ . '/../.env');
+} catch (Exception $e) {
+    error_log('Erro ao carregar .env: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'Configuração do servidor não encontrada']);
+    exit();
+}
+
 // Configurações de CORS e Headers
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -13,15 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // ===== CONFIGURAÇÕES =====
-
-$API_KEY = 'fc7ad3cafd1e1eecd000227f23e31996';
-$API_URL_CURRENT = 'https://api.openweathermap.org/data/2.5/weather';
-$API_URL_FORECAST = 'https://api.openweathermap.org/data/2.5/forecast';
-
-// Configurações de timeout
-$TIMEOUT = 30; // segundos
-$CONNECT_TIMEOUT = 10; // segundos
-
+$API_KEY = getenv('OPENWEATHER_API_KEY');
+$API_URL_CURRENT = getenv('API_URL_CURRENT') ?: 'https://api.openweathermap.org/data/2.5/weather';
+$API_URL_FORECAST = getenv('API_URL_FORECAST') ?: 'https://api.openweathermap.org/data/2.5/forecast';
+$TIMEOUT = (int)getenv('SERVER_TIMEOUT') ?: 30;
+$CONNECT_TIMEOUT = (int)getenv('SERVER_CONNECT_TIMEOUT') ?: 10;
+$DEBUG = getenv('DEBUG') === 'true';
 
 /**
  * Enviar resposta JSON padronizada
@@ -41,6 +70,8 @@ function sendResponse($success, $data = null, $message = '', $httpCode = 200) {
  * Log de erros personalizados
  */
 function logError($message, $context = []) {
+    global $DEBUG;
+    
     $timestamp = date('Y-m-d H:i:s');
     $logEntry = "[$timestamp] $message";
     
@@ -48,7 +79,9 @@ function logError($message, $context = []) {
         $logEntry .= " | Context: " . json_encode($context);
     }
     
-    error_log($logEntry);
+    if ($DEBUG) {
+        error_log($logEntry);
+    }
 }
 
 /**
@@ -104,7 +137,7 @@ function makeApiRequest($url) {
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => $TIMEOUT,
         CURLOPT_CONNECTTIMEOUT => $CONNECT_TIMEOUT,
-        CURLOPT_USERAGENT => 'WeatherApp-PHP/1.0 (+https://github.com/rogeriovc/API_clima_tempo)',
+        CURLOPT_USERAGENT => 'WeatherApp-PHP/2.0 (Secure Version)',
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
         CURLOPT_FOLLOWLOCATION => true,
@@ -122,7 +155,7 @@ function makeApiRequest($url) {
     
     // Log detalhes da requisição para debug
     logError("API Request", [
-        'url' => $url,
+        'url' => preg_replace('/appid=[^&]+/', 'appid=***', $url), // Mascarar API key nos logs
         'http_code' => $httpCode,
         'total_time' => $info['total_time'] ?? 0,
         'error' => $error
@@ -227,7 +260,7 @@ function handleCurrentWeather($data) {
     $weatherData = json_decode($response, true);
     
     if (!$weatherData) {
-        logError("Erro ao decodificar resposta da API", ['response' => $response]);
+        logError("Erro ao decodificar resposta da API", ['response' => substr($response, 0, 500)]);
         sendResponse(false, null, 'Erro ao processar dados meteorológicos', 502);
     }
     
@@ -266,7 +299,7 @@ function handleForecast($data) {
     $forecastData = json_decode($response, true);
     
     if (!$forecastData) {
-        logError("Erro ao decodificar previsão", ['response' => $response]);
+        logError("Erro ao decodificar previsão", ['response' => substr($response, 0, 500)]);
         sendResponse(false, null, 'Erro ao processar dados de previsão', 502);
     }
     
@@ -301,6 +334,5 @@ function translateApiError($code, $originalMessage) {
     
     return $translations[$code] ?? "Erro no serviço meteorológico: $originalMessage";
 }
-
 
 ?>

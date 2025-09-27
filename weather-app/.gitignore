@@ -1,0 +1,70 @@
+# ===== ARQUIVOS DE AMBIENTE E CONFIGURAÇÃO =====
+.env
+.env.local
+.env.production
+.env.test
+config.php
+secrets.json
+
+# ===== LOGS E CACHE =====
+*.log
+logs/
+cache/
+temp/
+tmp/
+
+# ===== DEPENDÊNCIAS =====
+node_modules/
+vendor/
+composer.lock
+package-lock.json
+yarn.lock
+
+# ===== IDEs E EDITORES =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== SISTEMA OPERACIONAL =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ===== ARQUIVOS DE BUILD E DIST =====
+dist/
+build/
+*.min.js
+*.min.css
+
+# ===== BACKUPS =====
+*.backup
+*.bak
+*.old
+*.orig
+
+# ===== ARQUIVOS TEMPORÁRIOS DO PHP =====
+*.tmp
+*.temp
+sessions/
+
+# ===== ARQUIVOS ESPECÍFICOS DO PROJETO =====
+# Remova o comentário dos itens que você NÃO quer versionar:
+# uploads/
+# user_data/
+# storage/
+
+# ===== TESTES =====
+coverage/
+.nyc_output/
+.phpunit.result.cache
+
+# ===== DOCKER =====
+.dockerignore
+docker-compose.override.yml
