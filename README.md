@@ -1,40 +1,92 @@
-#  Weather App - API de Clima em Tempo Real
+#  Weather App - Previsão do Tempo em Tempo Real
 
-Este é um projeto simples de aplicativo de clima que consome a API [OpenWeatherMap](https://openweathermap.org/) para exibir informações em tempo real sobre a temperatura e as condições climáticas de qualquer cidade do mundo.
-
----
-
-##  Tecnologias Utilizadas
-- HTML5 → Estrutura do app  
-- CSS3 → Estilização da interface  
-- JavaScript (ES6+) → Consumo da API e lógica do app  
-- OpenWeatherMap API → Dados climáticos em tempo real  
+> Aplicação full-stack que consome a API OpenWeatherMap para fornecer informações climáticas em tempo real com interface responsiva.
 
 ---
 
-##  Como Funciona
-1. O usuário digita o nome de uma cidade no campo de busca.  
-2. O app envia uma requisição para a API do OpenWeatherMap.  
-3. Os dados retornados (temperatura, clima, umidade, etc.) são exibidos na tela.  
+##  Funcionalidades
+
+-  Busca por cidade ou geolocalização automática
+-  Previsão de 5 dias com temperaturas min/max
+-  Temas dinâmicos baseados no clima
+-  Histórico de pesquisas (LocalStorage)
+-  Interface 100% responsiva
 
 ---
 
-##  Estrutura de Pastas
+##  Tecnologias
+
+**Backend:** PHP 8.0+ • cURL • Variáveis de Ambiente (.env)  
+**Frontend:** JavaScript ES6+ • CSS3 (Grid/Flexbox) • Weather Icons  
+**API:** OpenWeatherMap
+
+---
+
+##  Como Executar
+
+### 1 Clone o repositório
+```bash
+git clone https://github.com/rogeriovc/API_clima_tempo.git
+
+cd API_clima_tempo
+```
+
+### 2 Configure a API Key
+Crie um arquivo `.env` na raiz:
+```env
+OPENWEATHER_API_KEY=sua_chave_aqui
+API_URL_CURRENT=https://api.openweathermap.org/data/2.5/weather
+API_URL_FORECAST=https://api.openweathermap.org/data/2.5/forecast
+DEBUG=false
+```
+
+>  Obtenha sua chave gratuita em [OpenWeatherMap](https://home.openweathermap.org/users/sign_up)
+
+### 3 Inicie um servidor local
+```bash
+php -S localhost:8000
+```
+
+### 4 Acesse no navegador
+```
+http://localhost:8000
+```
+
+---
+
+##  Estrutura do Projeto
+
+```
 weather-app/
-│── index.html # Estrutura principal
-│── style.css # Estilos do app
-│── scripts.js # Requisições e lógica JS
-└── README.md # Documentação
-
+├── api/
+│   └── weather.php        # Backend API com validações e segurança
+├── index.html             # Interface principal
+├── style.css              # Estilos responsivos + temas dinâmicos
+├── scripts.js             # Lógica cliente + consumo da API
+├── .env                   # Variáveis de ambiente (não versionado)
+├── .gitignore             # Arquivos ignorados pelo Git
+└── README.md              # Documentação
+```
 
 ---
 
-##  Configuração da API
-Para rodar este projeto, você precisa de uma chave da [OpenWeatherMap](https://home.openweathermap.org/users/sign_up).
+##  Diferenciais Técnicos
 
-No arquivo `scripts.js`, substitua sua chave no campo:
+-  Arquitetura backend/frontend separada (API RESTful)
+-  Segurança com variáveis de ambiente (.env)
+-  Validação server-side e client-side
+-  Tratamento robusto de erros e timeouts
+-  Sistema de logging com mascaramento de chaves
+-  Código limpo e documentado
 
-js
-const API_KEY = 'SUA_CHAVE_AQUI';
-const API_URL = 'https://api.openweathermap.org/data/2.5/weather';
+---
 
+##  Desenvolvedor
+
+Desenvolvido por **Rogério Vicente**
+
+[GitHub](https://github.com/rogeriovc) • [Repositório do Projeto](https://github.com/rogeriovc/API_clima_tempo) 
+• [LinkedIn] (https://www.linkedin.com/in/rog%C3%A9rio-vicente-de-c-laporta-836662382/)
+
+---
+ Se este projeto te ajudou, deixe uma estrela.
