@@ -319,7 +319,7 @@ function handleForecast($data) {
 }
 
 /**
- * Traduzir códigos de erro da API
+ * Traduzir códigos dos erros da API
  */
 function translateApiError($code, $originalMessage) {
     $translations = [
